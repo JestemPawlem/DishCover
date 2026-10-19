@@ -37,11 +37,21 @@ async def lifespan(app: FastAPI):
             )
             cursor.execute(
                 '''
-                CREATE TABLE IF NOT EXISTS users(
-                    id SERIAL PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                '''
+            )
+            cursor.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS user_recipe_interactions (
+                    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+                    recipe_id BIGINT REFERENCES recipes(id) ON DELETE CASCADE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, recipe_id)
                 );
                 '''
             )

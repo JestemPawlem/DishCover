@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class Recipe(BaseModel):
+class RecipeSummary(BaseModel):
     id: int
     name: str = Field(
         min_length=3,
@@ -16,21 +16,41 @@ class Recipe(BaseModel):
     )
     description: str | None = Field(
         default=None,
-        max_length=2000
-    )
-    ingredients: list[Annotated[str, Field(min_length=3, max_length=100)]] = Field(
-        default_factory=list,
-        min_length=3,
-        max_length=50
-    )
-    steps: list[Annotated[str, Field(min_length=3, max_length=1000)]] = Field(
-        default_factory=list,
         min_length=1,
-        max_length=30,
+        max_length=2000
     )
 
     model_config = ConfigDict(
         from_attributes=True,
         extra='forbid',
         str_strip_whitespace=True
+    )
+
+
+class Recipe(RecipeSummary):
+    ingredients: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(
+        min_length=1,
+        max_length=50
+    )
+    steps: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(
+        min_length=1,
+        max_length=30,
+    )
+
+
+class RecipeRecommendation(RecipeSummary):
+    similarity: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0
+    )
+
+
+class LikeResponse(BaseModel):
+    liked: bool = Field(
+        description='Indicates whether the recipe is currently favorited by the user'
+    )
+
+    model_config = ConfigDict(
+        extra='forbid'
     )
