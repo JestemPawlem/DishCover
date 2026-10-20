@@ -177,6 +177,9 @@ def preprocess(recipes: pd.DataFrame,
     surviving_recipe_ids = interactions['recipe_id'].unique()
     recipes = recipes[recipes['id'].isin(surviving_recipe_ids)]
 
+    interaction_counts = interactions['recipe_id'].value_counts()
+    recipes['interaction_count'] = recipes['id'].map(interaction_counts).fillna(0).astype(np.int64)
+
     ingredients = list({ing for ings in recipes['cleaned_ingredients'] for ing in ings})
     ingredient_to_idx = cluster_ingredients(
         ingredients,

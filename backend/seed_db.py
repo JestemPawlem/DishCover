@@ -71,13 +71,14 @@ def seed_database() -> None:
 
     start_time = time.perf_counter()
     logger.info('Extracting features for fast batching...')
-    ids = recipes['id'].to_numpy(dtype=np.int64)
-    names = recipes['name'].fillna('').astype(str).to_numpy()
+    ids = recipes['id'].to_numpy()
+    names = recipes['name'].to_numpy()
     minutes = recipes['minutes'].to_numpy()
-    descriptions = recipes['description'].fillna('').astype(str).to_numpy()
+    descriptions = recipes['description'].to_numpy()
     raw_ingredients = recipes['ingredients'].to_numpy()
     raw_steps = recipes['steps'].to_numpy()
     raw_ingredient_ids = recipes['ingredient_ids'].to_numpy()
+    interaction_counts = recipes['interaction_count'].to_numpy()
     logger.info('Feature extraction finished in %.2f seconds.', time.perf_counter() - start_time)
 
 
@@ -101,16 +102,20 @@ def seed_database() -> None:
                         ingredients JSONB,
                         steps JSONB,
                         ingredient_ids INT[],
+                        like_count INT NOT NULL DEFAULT 0,
                         embedding vector({embedding_dim})
                     );
                 ''')
 
-                logger.info('Dropping existing HNSW index during ingestion...')
+                logger.info('Dropping existing indexes during ingestion...')
+                cur.execute('DROP INDEX IF EXISTS idx_recipes_like_count;')
                 cur.execute('DROP INDEX IF EXISTS recipes_embedding_hnsw_idx;')
 
                 upsert_query = '''
-                    INSERT INTO recipes (id, name, minutes, description, ingredients, steps, ingredient_ids, embedding)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO recipes (
+                        id, name, minutes, description, ingredients, steps, ingredient_ids,
+                        like_count, embedding)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO UPDATE SET
                         name = EXCLUDED.name,
                         minutes = EXCLUDED.minutes,
@@ -118,6 +123,7 @@ def seed_database() -> None:
                         ingredients = EXCLUDED.ingredients,
                         steps = EXCLUDED.steps,
                         ingredient_ids = EXCLUDED.ingredient_ids,
+                        like_count = EXCLUDED.like_count,
                         embedding = EXCLUDED.embedding;
                 '''
 
@@ -132,11 +138,12 @@ def seed_database() -> None:
                             (
                                 int(ids[j]),
                                 names[j],
-                                int(minutes[j]) if pd.notna(minutes[j]) else None,
+                                int(minutes[j]),
                                 descriptions[j],
                                 json.dumps(to_python_list(raw_ingredients[j])),
                                 json.dumps(to_python_list(raw_steps[j])),
                                 [int(x) for x in to_python_list(raw_ingredient_ids[j])],
+                                int(interaction_counts[j]),
                                 embeddings[j]
                             )
                             for j in range(i, end_idx)
@@ -149,11 +156,23 @@ def seed_database() -> None:
                 logger.info('Database ingestion completed in %.2f seconds (%.2f recipes/sec).', total_time, n_recipes / total_time)
 
                 start_time = time.perf_counter()
+                logger.info('Building B-Tree index on like_count...')
+                cur.execute(
+                    '''
+                    CREATE INDEX IF NOT EXISTS idx_recipes_like_count
+                    ON recipes (like_count DESC)
+                    '''
+                )
+                logger.info('B-Tree index built in %.2f seconds.', time.perf_counter() - start_time)
+
+                start_time = time.perf_counter()
                 logger.info('Building HNSW cosine similarity index...')
-                cur.execute('''
+                cur.execute(
+                    '''
                     CREATE INDEX IF NOT EXISTS recipes_embedding_hnsw_idx
                     ON recipes USING hnsw (embedding vector_cosine_ops);
-                ''')
+                    '''
+                )
                 logger.info('HNSW index built in %.2f seconds.', time.perf_counter() - start_time)
 
             logger.info('Database seeding completed successfully.')

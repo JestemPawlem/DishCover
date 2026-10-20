@@ -1,8 +1,9 @@
 export interface RecipeSummary {
     id: number;
     name: string;
-    minutes: number | null;
-    description: number | null;
+    minutes: number;
+    description: string | null;
+    like_count: number;
 }
 
 export interface RecipeRecommendation extends RecipeSummary {

@@ -9,8 +9,7 @@ class RecipeSummary(BaseModel):
         min_length=3,
         max_length=150
     )
-    minutes: int | None = Field(
-        default=None,
+    minutes: int = Field(
         ge=1,
         le=4320
     )
@@ -18,6 +17,10 @@ class RecipeSummary(BaseModel):
         default=None,
         min_length=1,
         max_length=2000
+    )
+    like_count: int = Field(
+        ge=0,
+        description='Total likes'
     )
 
     @field_validator('description', mode='before')

@@ -49,47 +49,62 @@ export const RecipeCard = ({ recipe, onLikeToggled }: Props) => {
     return (
         <Card
             withBorder
-            shadow="sm"
-            radius="lg"
-            p="lg"
-            bg="white"
-            h="100%"
+            shadow='sm'
+            radius='lg'
+            p='lg'
+            bg='teal.1'
+            h='100%'
         >
-        <Flex direction="column" justify="space-between" h="100%">
-            <Stack gap="xs" mb="md">
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                    <Text fw={700} size="md" c="teal.9" lineClamp={2}>
-                        {recipe.name}
+            <Flex direction='column' justify='space-between' h='100%'>
+                <Stack gap='xs' mb='md'>
+                    <Flex justify='space-between' align='flex-start' gap='xs'>
+                        <Text fw={700} size='md' c='teal.9' lineClamp={2} flex={1}>
+                            {recipe.name}
+                        </Text>
+                        {recipe.similarity !== null && (
+                            <Badge
+                                color='teal'
+                                variant='light'
+                                size='md'
+                                flex='0 0 auto'
+                            >
+                                {(recipe.similarity * 100).toFixed(1)}% match
+                            </Badge>
+                        )}
+                    </Flex>
+
+                    <Flex align='center' gap='sm'>
+                        {recipe.minutes && (
+                            <Text size='xs' c='dimmed'>
+                                Prep time: {recipe.minutes} mins
+                            </Text>
+                        )}
+                        {recipe.minutes && recipe.like_count !== undefined && (
+                            <Text size='xs' c='dimmed'>•</Text>
+                        )}
+                        {recipe.like_count !== undefined && (
+                            <Text size='xs' c='dimmed'>
+                                ❤️ {recipe.like_count} {recipe.like_count === 1 ? 'like' : 'likes'}
+                            </Text>
+                        )}
+                    </Flex>
+
+                    <Text size='sm' c='gray.7' lineClamp={4}>
+                        {recipe.description || 'No description provided.'}
                     </Text>
-                    {recipe.similarity !== null && (
-                    <Badge color="teal" variant="light" size="sm">
-                        {(recipe.similarity * 100).toFixed(1)}% match
-                    </Badge>
-                    )}
-                </Group>
+                </Stack>
 
-                {recipe.minutes && (
-                    <Text size="xs" c="dimmed">
-                        Prep time: {recipe.minutes} mins
-                    </Text>
-                )}
-
-                <Text size="sm" c="gray.7" lineClamp={3}>
-                    {recipe.description || 'No description provided.'}
-                </Text>
-            </Stack>
-
-            <Button
-                fullWidth
-                radius="md"
-                loading={loading}
-                onClick={handleLike}
-                variant={liked ? 'filled' : 'light'}
-                color={liked ? 'red' : 'gray'}
-            >
-                {liked ? 'Favorited' : 'Add to favorites'}
-            </Button>
-        </Flex>
+                <Button
+                    fullWidth
+                    radius='md'
+                    loading={loading}
+                    onClick={handleLike}
+                    variant={liked ? 'filled' : 'light'}
+                    color={liked ? 'red' : 'gray'}
+                >
+                    {liked ? 'Favorited' : 'Add to favorites'}
+                </Button>
+            </Flex>
         </Card>
     );
 }

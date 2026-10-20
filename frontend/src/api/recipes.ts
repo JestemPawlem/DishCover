@@ -13,6 +13,6 @@ export const getOnboardingRecipes = async (limit: number = 12): Promise<RecipeSu
 };
 
 export const toggleLikeRecipe = async (recipeId: number): Promise<LikeResponse> => {
-    const response = await api.get<LikeResponse>(`recipes/${recipeId}/like`);
+    const response = await api.post<LikeResponse>(`recipes/${recipeId}/like`);
     return response.data;
 }

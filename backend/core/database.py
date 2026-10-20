@@ -21,7 +21,8 @@ pool = ConnectionPool(
     min_size=2,
     max_size=10,
     configure=configure_connection,
-    open=False
+    open=False,
+    kwargs={'autocommit': True}
 )
 
 

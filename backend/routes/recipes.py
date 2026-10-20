@@ -24,8 +24,9 @@ def get_onboarding_recipes(connection: Annotated[psycopg.Connection, Depends(get
     with connection.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
             '''
-            SELECT id, name, minutes, description
+            SELECT id, name, minutes, description, like_count
             FROM recipes
+            ORDERED BY like_count DESC
             LIMIT %s
             ''',
             (limit,)
@@ -55,8 +56,9 @@ def get_recommendations(current_user: Annotated[UserDB, Depends(get_current_user
         if user_centroid is None:
             cursor.execute(
                 '''
-                SELECT id, name, minutes, description
+                SELECT id, name, minutes, description, like_count
                 FROM recipes
+                ORDER BY like_count DESC
                 LIMIT %s;
                 ''',
                 (limit,)
@@ -66,7 +68,7 @@ def get_recommendations(current_user: Annotated[UserDB, Depends(get_current_user
 
         cursor.execute(
             '''
-            SELECT r.id, r.name, r.minutes, r.description,
+            SELECT r.id, r.name, r.minutes, r.description, r.like_count,
                 ROUND((1 - (r.embedding <=> %s))::numeric, 4) AS similarity
             FROM recipes r
             WHERE r.id NOT IN (
@@ -98,6 +100,15 @@ def toggle_like_recipe(recipe_id: int,
         deleted = cursor.fetchone()
 
         if deleted:
+            cursor.execute(
+                '''
+                UPDATE recipes
+                SET like_count = GREATEST(0, like_count - 1)
+                WHERE id = %s
+                ''',
+                (recipe_id,)
+            )
+
             connection.commit()
             return LikeResponse(liked=False)
 
@@ -110,8 +121,20 @@ def toggle_like_recipe(recipe_id: int,
                 ''',
                 (current_user.id, recipe_id)
             )
+            inserted = cursor.fetchone()
+            if inserted:
+                cursor.execute(
+                    '''
+                    UPDATE recipes
+                    SET like_count = like_count + 1
+                    WHERE id = %s
+                    ''',
+                    (recipe_id,)
+                )
+            
             connection.commit()
             return LikeResponse(liked=True)
+        
         except ForeignKeyViolation:
             connection.rollback()
             raise HTTPException(

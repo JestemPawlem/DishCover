@@ -65,7 +65,7 @@ export const Dashboard = () => {
 
   if (!user) {
     return (
-      <Box bg='teal.5' mih='100vh'>
+      <Box bg='teal.7' mih='100vh'>
         <Center h='100vh'>
           <Loader color='white' size='xl' type='dots' />
         </Center>
@@ -74,17 +74,14 @@ export const Dashboard = () => {
   }
 
   return (
-    <Box bg='teal.5' mih='100vh' py='xl' px='md'>
-      <Container size='lg'>
+    <Box bg='teal.7' mih='100vh' py='xl' px='md'>
+      <Container size='xl'>
         <Paper shadow='2xl' p={36} radius='xl' bg='white'>
           <Group justify='space-between' align='center' mb='lg'>
             <div>
               <Title order={2} fw={800} c='teal.9'>
                 User Dashboard
               </Title>
-              <Text c='dimmed' size='sm'>
-                Signed in successfully
-              </Text>
             </div>
             <Button
               variant='light'
