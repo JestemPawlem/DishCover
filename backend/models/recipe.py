@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RecipeSummary(BaseModel):
@@ -19,6 +19,13 @@ class RecipeSummary(BaseModel):
         min_length=1,
         max_length=2000
     )
+
+    @field_validator('description', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, value: str | None) -> str | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     model_config = ConfigDict(
         from_attributes=True,

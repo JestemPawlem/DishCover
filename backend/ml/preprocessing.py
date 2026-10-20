@@ -146,7 +146,6 @@ def preprocess(recipes: pd.DataFrame,
     recipes = recipes[['id', 'name', 'minutes', 'description', 'ingredients', 'steps']]
     recipes['ingredients'] = recipes['ingredients'].apply(eval_list)
     recipes['steps'] = recipes['steps'].apply(eval_list)
-    recipes['description'] = recipes['description'].fillna('')
     recipes = recipes[(recipes['minutes'] > 0) & (recipes['minutes'] <= 4320)]
 
     recipes['cleaned_ingredients'] = recipes['ingredients'].apply(
