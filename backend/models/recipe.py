@@ -5,23 +5,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class RecipeSummary(BaseModel):
     id: int
-    name: str = Field(
-        min_length=3,
-        max_length=150
-    )
-    minutes: int = Field(
-        ge=1,
-        le=4320
-    )
-    description: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=2000
-    )
-    like_count: int = Field(
-        ge=0,
-        description='Total likes'
-    )
+    name: str = Field(min_length=3, max_length=150)
+    minutes: int = Field(ge=1, le=4320)
+    description: str | None = Field(default=None, min_length=1, max_length=2000)
+    like_count: int = Field(ge=0, description='Total likes')
+    is_liked: bool = Field(default=False, description='Whether the current user liked this recipe')
 
     @field_validator('description', mode='before')
     @classmethod
@@ -49,17 +37,11 @@ class Recipe(RecipeSummary):
 
 
 class RecipeRecommendation(RecipeSummary):
-    similarity: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0
-    )
+    similarity: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class LikeResponse(BaseModel):
-    liked: bool = Field(
-        description='Indicates whether the recipe is currently favorited by the user'
-    )
+    liked: bool = Field(description='Is recipe liked by the user')
 
     model_config = ConfigDict(
         extra='forbid'

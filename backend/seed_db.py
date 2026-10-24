@@ -14,12 +14,15 @@ from tqdm.auto import tqdm
 
 load_dotenv()
 
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'recipes_db')
-DB_URI = os.getenv('DATABASE_URL', f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "recipes_db")
+DB_URI = os.getenv(
+    'DATABASE_URL',
+    f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
+)
 ARTIFACTS_DIR = os.getenv('ARTIFACTS_DIR', 'artifacts')
 RECIPES_PATH = os.path.join(ARTIFACTS_DIR, 'recipes.parquet')
 EMBEDDINGS_PATH = os.path.join(ARTIFACTS_DIR, 'recipe_embeddings.npy')
@@ -29,7 +32,7 @@ BATCH_SIZE = 2048
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%H:%M:%S'
+    datefmt='%H:%M:%S',
 )
 logger = logging.getLogger(__name__)
 
@@ -62,12 +65,17 @@ def seed_database() -> None:
     n_recipes = len(recipes)
     n_embeddings = len(embeddings)
     if n_recipes != n_embeddings:
-        logger.error('Length mismatch: len(recipes) = %d, len(embeddings) = %d', n_recipes, n_embeddings)
+        logger.error(
+            'Length mismatch: len(recipes) = %d, len(embeddings) = %d',
+            n_recipes, n_embeddings,
+        )
         sys.exit(1)
 
     embedding_dim = embeddings.shape[1]
-    logger.info('Found %d recipes with %d-dimensional embeddings.', n_recipes, embedding_dim)
-
+    logger.info(
+        'Found %d recipes with %d-dimensional embeddings.',
+        n_recipes, embedding_dim,
+    )
 
     start_time = time.perf_counter()
     logger.info('Extracting features for fast batching...')
@@ -79,22 +87,38 @@ def seed_database() -> None:
     raw_steps = recipes['steps'].to_numpy()
     raw_ingredient_ids = recipes['ingredient_ids'].to_numpy()
     interaction_counts = recipes['interaction_count'].to_numpy()
-    logger.info('Feature extraction finished in %.2f seconds.', time.perf_counter() - start_time)
-
+    logger.info(
+        'Feature extraction finished in %.2f seconds.',
+        time.perf_counter() - start_time,
+    )
 
     logger.info('Connecting to PostgreSQL at %s...', DB_URI.split('@')[-1])
     try:
-        with psycopg.connect(DB_URI, autocommit=True) as conn:
-            with conn.cursor() as cur:
-                logger.info('Enabling pgvector extension if not present...')
-                cur.execute('CREATE EXTENSION IF NOT EXISTS vector;')
-            
-            register_vector(conn)
+        with psycopg.connect(DB_URI, autocommit=True) as connection:
+            with connection.cursor() as cursor:
+                logger.info('Enabling extensions if not present...')
+                cursor.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+                cursor.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
 
-            with conn.cursor() as cur:
-                logger.info('Ensuring table \'recipes\' exists...')
-                cur.execute(f'''
-                    CREATE TABLE IF NOT EXISTS recipes(
+            register_vector(connection)
+
+            with connection.cursor() as cursor:
+                logger.info('Ensuring full database schema (tables & relations)...')
+
+                cursor.execute(
+                    '''
+                    CREATE TABLE IF NOT EXISTS users (
+                        id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                        email TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    );
+                    '''
+                )
+
+                cursor.execute(
+                    f'''
+                    CREATE TABLE IF NOT EXISTS recipes (
                         id BIGINT PRIMARY KEY,
                         name TEXT NOT NULL,
                         minutes INT,
@@ -105,27 +129,25 @@ def seed_database() -> None:
                         like_count INT NOT NULL DEFAULT 0,
                         embedding vector({embedding_dim})
                     );
-                ''')
+                    '''
+                )
+
+                cursor.execute(
+                    '''
+                    CREATE TABLE IF NOT EXISTS user_recipe_interactions (
+                        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+                        recipe_id BIGINT REFERENCES recipes(id) ON DELETE CASCADE,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        PRIMARY KEY (user_id, recipe_id)
+                    );
+                    '''
+                )
 
                 logger.info('Dropping existing indexes during ingestion...')
-                cur.execute('DROP INDEX IF EXISTS idx_recipes_like_count;')
-                cur.execute('DROP INDEX IF EXISTS recipes_embedding_hnsw_idx;')
-
-                upsert_query = '''
-                    INSERT INTO recipes (
-                        id, name, minutes, description, ingredients, steps, ingredient_ids,
-                        like_count, embedding)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO UPDATE SET
-                        name = EXCLUDED.name,
-                        minutes = EXCLUDED.minutes,
-                        description = EXCLUDED.description,
-                        ingredients = EXCLUDED.ingredients,
-                        steps = EXCLUDED.steps,
-                        ingredient_ids = EXCLUDED.ingredient_ids,
-                        like_count = EXCLUDED.like_count,
-                        embedding = EXCLUDED.embedding;
-                '''
+                cursor.execute('DROP INDEX IF EXISTS idx_recipes_name_trgm;')
+                cursor.execute('DROP INDEX IF EXISTS idx_recipes_like_count;')
+                cursor.execute('DROP INDEX IF EXISTS idx_recipes_embedding_hnsw;')
+                cursor.execute('DROP INDEX IF EXISTS idx_user_recipe_interactions_user_id_created_at;')
 
                 start_time = time.perf_counter()
                 logger.info('Ingesting %d records in batches of %d...', n_recipes, BATCH_SIZE)
@@ -144,36 +166,69 @@ def seed_database() -> None:
                                 json.dumps(to_python_list(raw_steps[j])),
                                 [int(x) for x in to_python_list(raw_ingredient_ids[j])],
                                 int(interaction_counts[j]),
-                                embeddings[j]
+                                embeddings[j],
                             )
                             for j in range(i, end_idx)
                         ]
 
-                        cur.executemany(upsert_query, records)
+                        cursor.executemany(
+                            '''
+                            INSERT INTO recipes (
+                                id, name, minutes, description, ingredients, steps, ingredient_ids,
+                                like_count, embedding)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (id) DO NOTHING;
+                            ''',
+                            records
+                        )
                         pbar.update(len(records))
 
                 total_time = time.perf_counter() - start_time
-                logger.info('Database ingestion completed in %.2f seconds (%.2f recipes/sec).', total_time, n_recipes / total_time)
-
-                start_time = time.perf_counter()
-                logger.info('Building B-Tree index on like_count...')
-                cur.execute(
-                    '''
-                    CREATE INDEX IF NOT EXISTS idx_recipes_like_count
-                    ON recipes (like_count DESC)
-                    '''
+                logger.info(
+                    'Database ingestion completed in %.2f seconds (%.2f recipes/sec).',
+                    total_time, n_recipes / total_time,
                 )
-                logger.info('B-Tree index built in %.2f seconds.', time.perf_counter() - start_time)
 
-                start_time = time.perf_counter()
-                logger.info('Building HNSW cosine similarity index...')
-                cur.execute(
-                    '''
-                    CREATE INDEX IF NOT EXISTS recipes_embedding_hnsw_idx
-                    ON recipes USING hnsw (embedding vector_cosine_ops);
-                    '''
-                )
-                logger.info('HNSW index built in %.2f seconds.', time.perf_counter() - start_time)
+                indexes = [
+                    (
+                        'idx_recipes_name_trgm',
+                        'recipes(name) USING gin (trigram)',
+                        '''
+                        CREATE INDEX IF NOT EXISTS idx_recipes_name_trgm
+                        ON recipes USING gin (name gin_trgm_ops);
+                        '''
+                    ),
+                    (
+                        'idx_recipes_like_count',
+                        'recipes(like_count DESC)',
+                        '''
+                        CREATE INDEX IF NOT EXISTS idx_recipes_like_count
+                        ON recipes (like_count DESC);
+                        ''',
+                    ),
+                    (
+                        'idx_recipes_embedding_hnsw',
+                        'recipes(embedding vector_cosine_ops) USING hnsw',
+                        '''
+                        CREATE INDEX IF NOT EXISTS idx_recipes_embedding_hnsw
+                        ON recipes USING hnsw (embedding vector_cosine_ops);
+                        ''',
+                    ),
+                    (
+                        'idx_user_recipe_interactions_user_id_created_at',
+                        'user_recipe_interactions(user_id, created_at DESC)',
+                        '''
+                        CREATE INDEX IF NOT EXISTS idx_user_recipe_interactions_user_id_created_at
+                        ON user_recipe_interactions (user_id, created_at DESC);
+                        ''',
+                    )
+                ]
+
+                for name, target, sql in indexes:
+                    logger.info('Building index %s on %s...', name, target)
+                    start_time = time.perf_counter()
+                    cursor.execute(sql)
+                    logger.info('Index %s built in %.2f s.', name, time.perf_counter() - start_time)
 
             logger.info('Database seeding completed successfully.')
 

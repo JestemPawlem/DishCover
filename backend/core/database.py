@@ -8,12 +8,11 @@ from psycopg_pool import ConnectionPool
 
 from core.config import get_settings
 
-
 settings = get_settings()
 
 
 def configure_connection(connection: psycopg.Connection) -> None:
-    register_vector(connection)
+  register_vector(connection)
 
 
 pool = ConnectionPool(
@@ -22,45 +21,16 @@ pool = ConnectionPool(
     max_size=10,
     configure=configure_connection,
     open=False,
-    kwargs={'autocommit': True}
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pool.open()
-    with pool.connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                '''
-                CREATE EXTENSION IF NOT EXISTS vector;
-                '''
-            )
-            cursor.execute(
-                '''
-                CREATE TABLE IF NOT EXISTS users (
-                    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                );
-                '''
-            )
-            cursor.execute(
-                '''
-                CREATE TABLE IF NOT EXISTS user_recipe_interactions (
-                    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-                    recipe_id BIGINT REFERENCES recipes(id) ON DELETE CASCADE,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (user_id, recipe_id)
-                );
-                '''
-            )
-            connection.commit()
-    yield
-    pool.close()
+  pool.open()
+  yield
+  pool.close()
 
 
 def get_db() -> Iterator[psycopg.Connection]:
-    with pool.connection() as connection:
-        yield connection
+  with pool.connection() as connection:
+    yield connection

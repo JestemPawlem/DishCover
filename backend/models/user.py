@@ -18,6 +18,8 @@ class UserBase(BaseModel):
     def normalize_email(cls, value: EmailStr) -> str:
         return value.lower()
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(UserBase):
     password: SecretStr = Field(min_length=8, max_length=72)
@@ -40,8 +42,6 @@ class UserLogin(UserBase):
 class UserResponse(UserBase):
     id: int
     created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class UserDB(UserBase):
