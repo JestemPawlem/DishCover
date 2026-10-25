@@ -9,7 +9,9 @@ class RecipeSummary(BaseModel):
     minutes: int = Field(ge=1, le=4320)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
     like_count: int = Field(ge=0, description='Total likes')
+
     is_liked: bool = Field(default=False, description='Whether the current user liked this recipe')
+    similarity: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @field_validator('description', mode='before')
     @classmethod
@@ -34,10 +36,6 @@ class Recipe(RecipeSummary):
         min_length=1,
         max_length=30,
     )
-
-
-class RecipeRecommendation(RecipeSummary):
-    similarity: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class LikeResponse(BaseModel):

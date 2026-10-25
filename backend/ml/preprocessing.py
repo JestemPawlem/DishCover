@@ -147,6 +147,7 @@ def preprocess(recipes: pd.DataFrame,
     recipes['ingredients'] = recipes['ingredients'].apply(eval_list)
     recipes['steps'] = recipes['steps'].apply(eval_list)
     recipes = recipes[(recipes['minutes'] > 0) & (recipes['minutes'] <= 4320)]
+    recipes['description'] = recipes['description'].fillna('')
 
     recipes['cleaned_ingredients'] = recipes['ingredients'].apply(
         lambda ings: list({cleaned for ing in ings if (cleaned := clean_ingredient(ing, lemmatizer))})

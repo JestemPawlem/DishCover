@@ -16,7 +16,6 @@ from core.security import get_current_user, get_current_user_optional
 from models.recipe import (
     Recipe,
     RecipeSummary,
-    RecipeRecommendation,
     LikeResponse
 )
 from models.user import UserDB
@@ -54,10 +53,10 @@ def get_onboarding_recipes(connection: Annotated[psycopg.Connection, Depends(get
     return [RecipeSummary(**row) for row in rows]
 
 
-@router.get('/recommendations', response_model=list[RecipeRecommendation])
+@router.get('/recommendations', response_model=list[RecipeSummary])
 def get_recommendations(current_user: Annotated[UserDB, Depends(get_current_user)],
                         connection: Annotated[psycopg.Connection, Depends(get_db)],
-                        limit: Annotated[int, Query(ge=1, le=50)] = 12) -> list[RecipeRecommendation]:
+                        limit: Annotated[int, Query(ge=1, le=50)] = 12) -> list[RecipeSummary]:
     with connection.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
             '''
@@ -82,7 +81,7 @@ def get_recommendations(current_user: Annotated[UserDB, Depends(get_current_user
                 {'limit': limit}
             )
             rows = cursor.fetchall()
-            return [RecipeRecommendation(**row, similarity=None) for row in rows]
+            return [RecipeSummary(**row) for row in rows]
 
         cursor.execute(
             '''
@@ -99,7 +98,7 @@ def get_recommendations(current_user: Annotated[UserDB, Depends(get_current_user
         )
         rows = cursor.fetchall()
 
-    return [RecipeRecommendation(**row) for row in rows]
+    return [RecipeSummary(**row) for row in rows]
 
 
 @router.get('/search', response_model=list[RecipeSummary])

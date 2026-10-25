@@ -1,5 +1,5 @@
 import api from './client';
-import type { UserCreate, UserLogin, UserResponse } from '../types/user';
+import type { UserCreate, UserLogin, UserResponse } from '../types/auth';
 import type { Token } from '../types/token';
 
 

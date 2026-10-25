@@ -1,15 +1,7 @@
-export interface RecipeSummary {
-    id: number;
-    name: string;
-    minutes: number;
-    description: string | null;
-    like_count: number;
-}
+import type { components } from './api';
 
-export interface RecipeRecommendation extends RecipeSummary {
-    similarity: number | null;
-}
+type Schemas = components['schemas'];
 
-export interface LikeResponse {
-    liked: boolean;
-}
+export type RecipeSummary = Schemas['RecipeSummary'];
+export type Recipe = Schemas['Recipe'];
+export type LikeResponse = Schemas['LikeResponse'];
