@@ -1,111 +1,89 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useState } from 'react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
-    Container,
-    Paper,
-    Title,
-    Text,
-    Button,
-    Group,
-    SimpleGrid,
-    Loader,
-    Center
+  Container,
+  Paper,
+  Title,
+  Text,
+  Button,
+  Group,
+  Tabs
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { getRecommendations, getOnboardingRecipes } from '../api/recipes';
-import type { RecipeSummary } from '../types/recipe';
-import type { UserResponse } from '../types/auth';
-import { RecipeCard } from '../components/RecipeCard';
+import { IconSparkles, IconStar } from '@tabler/icons-react';
 
+import type { UserResponse } from '../types/auth';
+import { RecommendedRecipes } from '../components/RecommendedRecipes';
+import { PopularRecipes } from '../components/PopularRecipes';
 
 interface OutletContextType {
-    user: UserResponse | null;
-    isLoggedIn: boolean;
+  user: UserResponse | null;
+  isLoggedIn: boolean;
 }
 
-
 export const Dashboard = () => {
-    const { user, isLoggedIn } = useOutletContext<OutletContextType>();
-    const [recipes, setRecipes] = useState<(RecipeSummary)[]>([]);
-    const [loading, setLoading] = useState(false);
+  const { isLoggedIn } = useOutletContext<OutletContextType>();
+  const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState<string | null>(isLoggedIn ? 'recommended' : 'popular');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-    const fetchRecipes = useCallback(async () => {
-        setLoading(true);
-        try {
-            if (isLoggedIn) {
-                const data = await getRecommendations(12);
-                setRecipes(data);
-            } else {
-                const data = await getOnboardingRecipes(12);
-                setRecipes(data);
-            }
-        } catch {
-            notifications.show({
-                title: 'Error',
-                message: 'Failed to fetch recipes.',
-                color: 'red'
-            });
-        } finally {
-            setLoading(false);
-        }
-    }, [isLoggedIn]);
+  const handleTabChange = (val: string | null) => {
+    if (val === 'recommended' && !isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    setActiveTab(val);
+  };
 
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
-    useEffect(() => {
-        fetchRecipes();
-    }, [fetchRecipes]);
+  return (
+    <Container size='lg'>
+      <Paper shadow='2xl' p={36} radius='xl' bg='white'>
+        <Group justify='space-between' align='center' mb='lg'>
+          <div>
+            <Title order={2} fw={800} c='teal.9'>
+              {activeTab === 'recommended' ? 'Recommended' : 'Popular'}
+            </Title>
+            <Text c='dimmed' size='sm'>
+              {activeTab === 'recommended'
+                ? 'Personalized recipe suggestions based on your taste'
+                : 'Most liked recipes across the platform'}
+            </Text>
+          </div>
 
+          <Group gap='sm'>
+            <Tabs value={activeTab} onChange={handleTabChange} variant='pills' color='teal'>
+              <Tabs.List>
+                <Tabs.Tab value='recommended' leftSection={<IconSparkles size={14} stroke={1.7} />}>
+                  Recommended
+                </Tabs.Tab>
+                <Tabs.Tab value='popular' leftSection={<IconStar size={14} stroke={1.7} />}>
+                  Popular
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs>
 
-    return (
-        <Container size='lg'>
-            <Paper shadow='2xl' p={36} radius='xl' bg='white'>
-                <Group justify='space-between' align='center' mb='lg'>
-                    <div>
-                        <Title order={2} fw={800} c='teal.9'>
-                            {isLoggedIn ? 'Recommended For You' : 'Trending Recipes'}
-                        </Title>
-                        <Text c='dimmed' size='sm'>
-                            {isLoggedIn
-                                ? 'Recipes dynamically personalized using your interactions'
-                                : 'Explore the most popular dishes across our community'}
-                        </Text>
-                    </div>
+            <Button
+              variant='subtle'
+              color='teal'
+              radius='md'
+              size='xs'
+              onClick={handleRefresh}
+            >
+              Refresh
+            </Button>
+          </Group>
+        </Group>
 
-                    {isLoggedIn && (
-                        <Button
-                            variant='subtle'
-                            color='teal'
-                            radius='md'
-                            size='xs'
-                            loading={loading}
-                            onClick={fetchRecipes}
-                        >
-                            Refresh
-                        </Button>
-                    )}
-                </Group>
-
-                {loading && recipes.length === 0 ? (
-                    <Center py='xl'>
-                        <Loader color='teal' size='md' />
-                    </Center>
-                ) : recipes.length === 0 ? (
-                    <Center py='xl'>
-                        <Text size='sm' c='dimmed'>No recipes found.</Text>
-                    </Center>
-                ) : (
-                    <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing='md'>
-                        {recipes.map((recipe) => (
-                            <RecipeCard
-                                key={recipe.id}
-                                recipe={recipe}
-                                isLoggedIn={isLoggedIn}
-                            />
-                        ))}
-                    </SimpleGrid>
-                )}
-            </Paper>
-        </Container>
-    );
+        {activeTab === 'recommended' ? (
+          <RecommendedRecipes isLoggedIn={isLoggedIn} refreshKey={refreshKey} />
+        ) : (
+          <PopularRecipes isLoggedIn={isLoggedIn} refreshKey={refreshKey} />
+        )}
+      </Paper>
+    </Container>
+  );
 };

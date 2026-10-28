@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Card,
   Text,
@@ -10,8 +11,15 @@ import {
   Group
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import {
+  IconHeart,
+  IconHeartFilled,
+  IconClock
+} from '@tabler/icons-react';
+
 import type { RecipeSummary } from '../types/recipe';
 import { toggleLikeRecipe } from '../api/recipes';
+import { formatTime } from '../utils/format';
 
 interface Props {
   recipe: RecipeSummary;
@@ -79,51 +87,58 @@ export const RecipeCard = ({ recipe, isLoggedIn, onLikeToggled }: Props) => {
     >
       <Flex direction='column' justify='space-between' h='100%'>
         <Stack gap='xs'>
-          <Flex justify='space-between' align='flex-start' gap='xs'>
-            <Text fw={700} size='md' c='teal.9' lineClamp={2} flex={1}>
-              {recipe.name}
-            </Text>
+          <Text fw={700} size='md' c='teal.9' lineClamp={3}>
+            {recipe.name}
+          </Text>
 
-            <Group gap={6} wrap='nowrap' align='center'>
-              {recipe.similarity != null && (
-                <Badge
-                  color='teal'
-                  variant='light'
-                  size='md'
-                  flex='0 0 auto'
-                >
-                  {(recipe.similarity * 100).toFixed(1)}% match
-                </Badge>
+          <Flex align='center' justify='space-between' gap='xs' wrap='wrap'>
+            <Group gap='sm' align='center'>
+              {recipe.minutes && (
+                <Group gap={4} align='center'>
+                  <IconClock size={15} stroke={1.5} color='gray' />
+                  <Text size='xs' c='dimmed'>
+                    {formatTime(recipe.minutes)}
+                  </Text>
+                </Group>
               )}
-              <ActionIcon
-                variant={liked ? 'filled' : 'subtle'}
-                color='red'
-                size='lg'
-                radius='xl'
-                loading={loading}
+
+              <Group
+                gap={3}
+                align='center'
                 onClick={handleLike}
-                aria-label={liked ? 'Remove from favorites' : 'Add to favorites'}
+                style={{ cursor: 'pointer' }}
               >
-                {liked ? '❤️' : '🤍'}
-              </ActionIcon>
+                <ActionIcon
+                  variant='transparent'
+                  color={liked ? 'red.7' : 'gray.6'}
+                  size='xs'
+                  aria-label={liked ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {liked ? (
+                    <IconHeartFilled size={16} />
+                  ) : (
+                    <IconHeart size={16} stroke={1.7} />
+                  )}
+                </ActionIcon>
+                <Text size='xs' fw={600} c={liked ? 'red.7' : 'dimmed'}>
+                  {likeCount}
+                </Text>
+              </Group>
             </Group>
+
+            {recipe.similarity != null && (
+              <Badge
+                color='teal'
+                variant='light'
+                size='sm'
+                flex='0 0 auto'
+              >
+                {(recipe.similarity * 100).toFixed(1)}% match
+              </Badge>
+            )}
           </Flex>
 
-          <Flex align='center' gap='sm'>
-            {recipe.minutes && (
-              <Text size='xs' c='dimmed'>
-                Prep time: {recipe.minutes} mins
-              </Text>
-            )}
-            {recipe.minutes && (
-              <Text size='xs' c='dimmed'>•</Text>
-            )}
-            <Text size='xs' c='dimmed'>
-              ❤️ {likeCount} {likeCount === 1 ? 'like' : 'likes'}
-            </Text>
-          </Flex>
-
-          <Text size='sm' c='gray.7' lineClamp={4}>
+          <Text size='sm' c='gray.7' lineClamp={3}>
             {recipe.description || 'No description provided.'}
           </Text>
         </Stack>

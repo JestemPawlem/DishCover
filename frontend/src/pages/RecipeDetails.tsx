@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useParams, useOutletContext } from 'react-router-dom';
+import { useParams, useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
   Title,
   Text,
-  Badge,
-  Button,
   Group,
   Divider,
   List,
@@ -14,13 +12,17 @@ import {
   Loader,
   Center,
   Flex,
-  Box
+  Box,
+  ActionIcon
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { IconClock, IconHeart, IconHeartFilled } from '@tabler/icons-react';
+
 import { getRecipe, getSimilarRecipes, toggleLikeRecipe } from '../api/recipes';
 import type { Recipe, RecipeSummary } from '../types/recipe';
 import type { UserResponse } from '../types/auth';
 import { RecipeCard } from '../components/RecipeCard';
+import { formatTime } from '../utils/format';
 
 interface OutletContextType {
   user: UserResponse | null;
@@ -31,6 +33,7 @@ export const RecipeDetails = () => {
   const { id } = useParams<{ id: string }>();
   const recipeId = Number(id);
   const { isLoggedIn } = useOutletContext<OutletContextType>();
+  const navigate = useNavigate();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [similar, setSimilar] = useState<RecipeSummary[]>([]);
@@ -60,7 +63,14 @@ export const RecipeDetails = () => {
   }, [recipeId]);
 
   const handleLike = async () => {
-    if (!recipe || !isLoggedIn) return;
+    if (!recipe) return;
+    
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    if (likeLoading) return;
 
     setLikeLoading(true);
     try {
@@ -73,7 +83,7 @@ export const RecipeDetails = () => {
     } catch {
       notifications.show({
         title: 'Error',
-        message: 'Failed to update favorite status.',
+        message: 'Failed to update like status.',
         color: 'red'
       });
     } finally {
@@ -107,29 +117,39 @@ export const RecipeDetails = () => {
             <Title order={1} fw={800} c='teal.9'>
               {recipe.name}
             </Title>
-            <Group gap='sm' mt='xs'>
-              {recipe.minutes && (
-                <Badge color='teal' variant='light' size='lg'>
-                  ⏱ {recipe.minutes} mins
-                </Badge>
-              )}
-              <Badge color='gray' variant='light' size='lg'>
-                ❤️ {recipe.like_count ?? 0} likes
-              </Badge>
-            </Group>
+            
+            {recipe.minutes && (
+              <Group gap={6} align='center' mt='sm'>
+                <IconClock size={18} stroke={1.5} color='gray' />
+                <Text size='sm' c='dimmed' fw={500}>
+                  {formatTime(recipe.minutes)}
+                </Text>
+              </Group>
+            )}
           </div>
 
-          {isLoggedIn && (
-            <Button
-              radius='md'
-              loading={likeLoading}
-              onClick={handleLike}
-              variant={recipe.is_liked ? 'filled' : 'light'}
-              color={recipe.is_liked ? 'red' : 'gray'}
+          <Group
+            gap={6}
+            align='center'
+            onClick={handleLike}
+            style={{ cursor: 'pointer' }}
+          >
+            <ActionIcon
+              variant='transparent'
+              color={recipe.is_liked ? 'red.7' : 'gray.6'}
+              size='xl'
+              aria-label={recipe.is_liked ? 'Unlike recipe' : 'Like recipe'}
             >
-              {recipe.is_liked ? 'Favorited' : 'Add to favorites'}
-            </Button>
-          )}
+              {recipe.is_liked ? (
+                <IconHeartFilled size={28} />
+              ) : (
+                <IconHeart size={28} stroke={1.5} />
+              )}
+            </ActionIcon>
+            <Text size='xl' fw={600} c={recipe.is_liked ? 'red.7' : 'dimmed'}>
+              {recipe.like_count ?? 0}
+            </Text>
+          </Group>
         </Group>
 
         <Text c='gray.7' size='md' mb='xl'>
