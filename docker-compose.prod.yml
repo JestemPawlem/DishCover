@@ -1,0 +1,12 @@
+services:
+  frontend:
+    image: reciperecommender-frontend:prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "80:80"
+    volumes: []
+    environment:
+      - VITE_API_URL=/api

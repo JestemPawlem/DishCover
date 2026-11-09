@@ -44,7 +44,7 @@ export const AppHeader = ({ user, onLogout }: Props) => {
             c='teal.8'
             style={{ textDecoration: 'none' }}
           >
-            TasteMatch
+            DishCovery
           </Text>
 
           <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: 440 }}>

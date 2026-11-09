@@ -4,16 +4,11 @@ import os
 import sys
 import time
 
-from dotenv import load_dotenv
 import kagglehub
 import pandas as pd
 
-from ml.preprocessing import preprocess
-
-
-load_dotenv()
-
-DEFAULT_ARTIFACTS_DIR = os.getenv('ARTIFACTS_DIR', 'artifacts')
+from src.config import ARTIFACTS_DIR
+from src.preprocessing import preprocess
 
 
 logging.basicConfig(
@@ -76,7 +71,7 @@ def parse_args() ->argparse.Namespace:
     parser.add_argument(
         '--artifacts-dir',
         type=str,
-        default=DEFAULT_ARTIFACTS_DIR,
+        default=ARTIFACTS_DIR,
         help='Directory to save generated artifacts.'
     )
     parser.add_argument(

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from ml.model import TwoTower
+from src.model import TwoTower
 
 
 @torch.no_grad()

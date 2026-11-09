@@ -6,18 +6,13 @@ import os
 import sys
 import time
 
-from dotenv import load_dotenv
 import numpy as np
 import pandas as pd
 import torch
 
-from ml.evaluation import generate_recipe_embeddings
-from ml.training import train
-
-
-load_dotenv()
-
-DEFAULT_ARTIFACTS_DIR = os.getenv('ARTIFACTS_DIR', 'artifacts')
+from src.config import ARTIFACTS_DIR
+from src.evaluation import generate_recipe_embeddings
+from src.training import train
 
 
 logging.basicConfig(
@@ -104,7 +99,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument(
       '--artifacts-dir',
       type=str,
-      default=DEFAULT_ARTIFACTS_DIR,
+      default=ARTIFACTS_DIR,
       help='Directory where input data lives and output artifacts will be saved.',
   )
   parser.add_argument(

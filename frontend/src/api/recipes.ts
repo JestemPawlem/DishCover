@@ -1,14 +1,13 @@
 import api from './client';
 import type {
     Recipe,
-    RecipeRecommendation,
     RecipeSummary,
     LikeResponse
 } from '../types/recipe';
 
 
-export const getRecommendations = async (limit: number = 12): Promise<RecipeRecommendation[]> => {
-    const response = await api.get<RecipeRecommendation[]>(`/recipes/recommendations?limit=${limit}`);
+export const getRecommendations = async (limit: number = 12): Promise<RecipeSummary[]> => {
+    const response = await api.get<RecipeSummary[]>(`/recipes/recommendations?limit=${limit}`);
     return response.data;
 };
 

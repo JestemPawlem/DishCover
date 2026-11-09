@@ -8,9 +8,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from ml.dataset import TwoTowerCollator, TwoTowerDataset
-from ml.evaluation import evaluate_metrics
-from ml.model import TwoTower
+from src.dataset import TwoTowerCollator, TwoTowerDataset
+from src.evaluation import evaluate_metrics
+from src.model import TwoTower
 
 
 logger = logging.getLogger(__name__)

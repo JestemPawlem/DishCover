@@ -1,6 +1,5 @@
 import api from './client';
-import type { UserCreate, UserLogin, UserResponse } from '../types/auth';
-import type { Token } from '../types/token';
+import type { UserCreate, UserLogin, UserResponse, Token } from '../types/auth';
 
 
 export const registerUser = async (data: UserCreate): Promise<UserResponse> => {

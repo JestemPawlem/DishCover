@@ -1,7 +1,6 @@
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-from typing import Tuple
 
 
 class TwoTower(nn.Module):
@@ -53,7 +52,7 @@ class TwoTower(nn.Module):
                 user_ids: torch.Tensor,
                 recipe_ids: torch.Tensor,
                 ingredients: torch.Tensor,
-                offsets: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+                offsets: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         user = self.forward_user(user_ids)
         item = self.forward_recipe(recipe_ids, ingredients, offsets)
         return user, item

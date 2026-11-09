@@ -1,4 +1,3 @@
-from typing import List, Tuple
 import numpy as np
 import pandas as pd
 import torch
@@ -17,7 +16,7 @@ class TwoTowerDataset(Dataset):
         return len(self.user_indices)
 
     def __getitem__(self,
-                    idx: int) -> Tuple[int, int]:
+                    idx: int) -> tuple[int, int]:
         return self.user_indices[idx], self.recipe_indices[idx]
 
 
@@ -43,7 +42,7 @@ class TwoTowerCollator:
         self.lengths = torch.from_numpy(lengths)
 
     def __call__(self,
-                 batch: List[Tuple[int, int]]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+                 batch: list[tuple[int, int]]) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         batch_tensor = torch.as_tensor(batch, dtype=torch.long)
         user_ids, recipe_ids = batch_tensor[:, 0], batch_tensor[:, 1]
 

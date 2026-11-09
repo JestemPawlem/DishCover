@@ -1,22 +1,12 @@
 import argparse
 import logging
-import os
 import sys
 import time
 
-from dotenv import load_dotenv
 from pgvector.psycopg import register_vector
 import psycopg
 
-
-load_dotenv()
-
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'recipes_db')
-DEFAULT_DB_URI = os.getenv('DATABASE_URL', f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
+from src.config import DB_URI
 
 
 logging.basicConfig(
@@ -28,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_similarity_search(target_recipe_id: int,
-                          db_uri: str = DEFAULT_DB_URI,
+                          db_uri: str = DB_URI,
                           top_k: int = 5) -> None:
     logger.info('Connecting to PostgreSQL at %s...', db_uri.split('@')[-1])
 
@@ -110,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--db-uri',
         type=str,
-        default=DEFAULT_DB_URI,
+        default=DB_URI,
         help='PostgreSQL connection string.'
     )
     return parser.parse_args()

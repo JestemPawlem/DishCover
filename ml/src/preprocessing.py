@@ -17,15 +17,11 @@ from sklearn.preprocessing import normalize
 def get_nlp_resources(cache_dir: str = 'artifacts') -> tuple[WordNetLemmatizer, SentenceTransformer]:
     os.makedirs(cache_dir, exist_ok=True)
 
-    nltk_data_dir = os.path.join(cache_dir, 'nltk_data')
-    os.makedirs(nltk_data_dir, exist_ok=True)
-    if nltk_data_dir not in nltk.data.path:
-        nltk.data.path.insert(0, nltk_data_dir)
-
     try:
-        nltk.data.find('corpora/wordnet', paths=[nltk_data_dir])
+        nltk.data.find('corpora/wordnet')
     except LookupError:
-        nltk.download('wordnet', download_dir=nltk_data_dir, quiet=True)
+        nltk.download('wordnet', quiet=True)
+        nltk.download('omw-1.4', quiet=True)
 
     lemmatizer = WordNetLemmatizer()
 
@@ -40,7 +36,10 @@ def get_nlp_resources(cache_dir: str = 'artifacts') -> tuple[WordNetLemmatizer, 
 
 
 def clean_ingredient(ingredient: str,
-                     lemmatizer: WordNetLemmatizer) -> str:
+                     lemmatizer: WordNetLemmatizer | None = None) -> str:
+    if lemmatizer is None:
+        lemmatizer = WordNetLemmatizer()
+
     ingredient = ingredient.lower().strip()
     ingredient = re.sub(r'\d+', '', ingredient)
     ingredient = re.sub(r'[^\w\s]', '', ingredient)
@@ -160,7 +159,6 @@ def preprocess(recipes: pd.DataFrame,
         lambda ings: [ing for ing in ings if ing in frequent]
     )
     recipes = recipes[recipes['cleaned_ingredients'].map(len) >= 3]
-
 
     interactions = interactions[interactions['rating'] >= 4]
     interactions = interactions[['recipe_id', 'user_id']]
